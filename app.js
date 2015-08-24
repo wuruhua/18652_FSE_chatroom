@@ -4,6 +4,32 @@ var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io').listen(server);
 
+//express setup
+app.configure(function(){
+  app.set('port', process.env.PORT || 8080);
+  app.set('views', __dirname + '/views');
+  app.use(express.favicon());
+  app.use(express.logger('dev'));
+  app.use(express.bodyParser());
+  app.use(express.methodOverride());
+  app.use(app.router);
+  app.use(express.static(path.join(__dirname, 'public')));
+});
+
+app.configure('development', function(){
+  app.use(express.errorHandler());
+});
+
+//setup html for view
+app.get('/', function(req, res){
+  res.sendfile('views/index.html');
+});
+
+server.listen(app.get('port'), function(){
+  console.log("Express server listening on port " + app.get('port'));
+});
+
+
 
 // database setup
 var fs = require("fs");
@@ -43,61 +69,20 @@ function recordMessage(user, date, msg) {
 
 
 
-//express基本配置
-app.configure(function(){
-  app.set('port', process.env.PORT || 8080);
-  app.set('views', __dirname + '/views');
-  app.use(express.favicon());
-  app.use(express.logger('dev'));
-  app.use(express.bodyParser());
-  app.use(express.methodOverride());
-  app.use(app.router);
-  app.use(express.static(path.join(__dirname, 'public')));
-});
-
-app.configure('development', function(){
-  app.use(express.errorHandler());
-});
-
-// 指定webscoket的客户端的html文件
-app.get('/', function(req, res){
-  res.sendfile('views/index.html');
-});
-
-server.listen(app.get('port'), function(){
-  console.log("Express server listening on port " + app.get('port'));
-});
-
-
-
-
 // Socket.IO events
 io.on('connection', function(socket) {
+    //record current user name
+  var userName = false;
   
   //1. notify connection success
-  socket.emit('open');
+  socket.emit('connectionSuccess');
 
-  
-  // 构造客户端对象
-  var client = {
-    socket:socket,
-    name:false,
-    color:getColor()
-  }
-
-
-  // 对message事件的监听
+  //2. listen to message event 
   socket.on('message', function(msg){
-    var obj = {time:getTime(),color:client.color};
 
-    // 判断是不是第一次连接，以第一条消息作为用户名
-    if(!client.name){
-        client.name = msg;
-        obj['text']=client.name;
-        obj['author']='System';
-        obj['type']='welcome';
-        console.log(client.name + ' login');
-
+    // means this is the first time for user to login in
+    if(!userName){
+        userName = msg;
         
         //list all messages in database when new user login 
         var db = new sqlite3.Database(file);
@@ -108,12 +93,12 @@ io.on('connection', function(socket) {
             console.log("Hey, there is nothing in database!");
           } else {
             rows.forEach(function (row) {
-              var obj = {
-                author: row.name,
+              var data = {
+                user: row.name,
                 time: row.time,
-                text: row.message
+                message: row.message
               };
-              socket.emit('message', obj);
+              socket.emit('message', data);
               //record
               console.log("read from database: "+row.name+";"+row.time+";"+row.message);
             });
@@ -121,43 +106,50 @@ io.on('connection', function(socket) {
           db.close();
         });
 
+        //construct the data to be sent
+        var data = {
+          time: getTime(),
+          user: userName,
+          message: 'New User Join: ',
+          type: 'newUser'
+        };
 
-        //返回欢迎语
-        socket.emit('system',obj);
-        //广播新用户已登陆
-        socket.broadcast.emit('system',obj);
+        console.log(userName + ' login');
+
+        //broadcast
+        socket.emit('system',data);
+        socket.broadcast.emit('system',data);
      }else{
-
-        //如果不是第一次的连接，正常的聊天消息
-        obj['text']=msg;
-        obj['author']=client.name;      
-        obj['type']='message';
-        console.log(client.name + ' say: ' + msg);
-
+        //means this is the user posting message
+        var data = {
+          time: getTime(),
+          user: userName,
+          message: msg,
+          type: 'message'
+        };
+        console.log(userName + ' say: ' + msg);
 
         //record date into database
-        recordMessage(client.name, obj.time, msg);
+        recordMessage(userName, data.time, msg);
 
-        // 返回消息（可以省略）
-        socket.emit('message',obj);
-        // 广播向其他用户发消息
-        socket.broadcast.emit('message',obj);
+        //broadcast
+        socket.emit('message',data);
+        socket.broadcast.emit('message',data);
       }
     });
 
-    //监听出退事件
+    //3. listen to disconnect event
     socket.on('disconnect', function () {  
-      var obj = {
-        time:getTime(),
-        color:client.color,
-        author:'System',
-        text:client.name,
-        type:'disconnect'
+      var data = {
+        time: getTime(),
+        user: userName,
+        message: 'User Logged Out: ',
+        type: 'disconnect'
       };
 
-      // 广播用户已退出
-      socket.broadcast.emit('system',obj);
-      console.log(client.name + 'Disconnect');
+      //broadcast
+      socket.broadcast.emit('system',data);
+      console.log(userName + ' logout');
     });
 
 });
@@ -168,11 +160,11 @@ var getTime=function(){
   return date.getHours()+":"+date.getMinutes()+":"+date.getSeconds();
 }
 
-var getColor=function(){
-  var colors = ['aliceblue','antiquewhite','aqua','aquamarine','pink','red','green',
-                'orange','blue','blueviolet','brown','burlywood','cadetblue'];
-  return colors[Math.round(Math.random() * 10000 % colors.length)];
-}
+// var getColor=function(){
+//   var colors = ['aliceblue','antiquewhite','aqua','aquamarine','pink','red','green',
+//                 'orange','blue','blueviolet','brown','burlywood','cadetblue'];
+//   return colors[Math.round(Math.random() * 10000 % colors.length)];
+// }
 
 
 
