@@ -1,6 +1,7 @@
 $(function () {
-	var content = $('#content');
-	var status = $('#status');
+	var content = $('#contentDiv');
+	var contentTable = $('#contentTable');
+	var label = $('#label');
 	var input = $('#input');
 	var textarea = $('#textarea');
 	var button = $('#button');
@@ -13,15 +14,15 @@ $(function () {
 
 	//confirm connection success
 	socket.on('connectionSuccess',function(){
-	  status.text('Please enter your user name:');
+	  label.text('Please enter your user name:');
 	});
 
     //listen to system event
 	socket.on('system',function(data){
-		var p = '';
+		var element = "";
 		if (data.type === 'newUser'){
 			if(userName==data.user) {
-                status.hide();
+                label.hide();
                 input.hide();
 
                 $('#messageDiv').css({
@@ -34,45 +35,41 @@ $(function () {
                 textarea.css({
                 	"display":"block",
                 	"height":"150px",
-                	"width":"300px",
-                	"background-color":"#CAE1FF" 
+                	"width":"400px",
+                	"background-color":"#ADD8E6" 
                 })
 
                 button.val("POST").css({
                 	"display":"block",
                 	"height":"40px",
                 	"width":"80px",
-                	"margin-top": "10px",
-                	"background-color":"#7B68EE" 
+                	"margin-top":"10px",
+                	"margin-left":"160px",
+                	"background-color":"#1E90FF" 
 			    });
 
 			    content.css({
 			    	"overflow":"scroll",
-			    	"height":"300px",
+			    	"height":"380px",
+			    	"width":"420px",
 			    	"margin-bottom":"10px",
-			    	"background-color":"#CCCCCC"
 			    });
-			    //scroll to the bottom by default
-			    // $('#content').scrollTop($('#content')[0].height);
 
             }	
-			p = '<p>system @ '+ data.time+ ' : ' + data.message + data.user +'</p>';
-
-		} else if (data.type == 'disconnect') {
-			p = '<p>system @ '+ data.time+ ' : ' + data.message + data.user +'</p>';
+            element = '<tr height="40px"><td>'+"Log in: "+data.user+' @'+data.time+'</td></tr>';
+		} 
+		else if (data.type == 'disconnect') {
+			element = '<tr height="40px"><td>'+"Log Out: "+data.user+' @'+data.time+'</td></tr>';
 		}
-		content.append(p);
+
+		$('#contentTable').append(element);
 	});
 
 
 	//listen to message event
 	socket.on('message',function(data){
-	  // var p = '<p><span>' + obj.user+'</span> @ '+ obj.time+ ' : '+obj.message+'</p>';
-	  // content.append(p);
-	  var p = '<p><span>' + data.user+'</span> @ '+ data.time+ ' : '+data.message+'</p>';
-      content.append(p);
+	  addContentMessage(data);
 	});
-
 
 	//set up button click event
 	button.click(function(e) {
@@ -95,4 +92,12 @@ $(function () {
 	    }
 	  
 	});
+
+
+	function addContentMessage(data) {
+	  var element = '<tr height="40px"><td align="left" style="font-weight:bold;font-size:140%">'+data.user+'</td><td align="right" style="font-size:70%">'+data.time+'</td></tr>'
+	  +'<tr height="40px" style="word-wrap:break-word;word-break:break-all;"><td colspan="2" style="font-size:110%">'+data.message+'</td></tr>';
+	  $('#contentTable').append(element);
+	  $('#contentTable').scrollTop=$('#contentTable').scrollHeight;
+	}
 });

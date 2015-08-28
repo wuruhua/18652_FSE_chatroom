@@ -53,7 +53,7 @@ db.serialize(function() {
 db.close();
 
 
-
+//record message to sqlite
 function recordMessage(user, date, msg) {
   var db = new sqlite3.Database(file);
 
@@ -157,26 +157,18 @@ io.on('connection', function(socket) {
 
 var getTime=function(){
   var date = new Date();
-  return date.getHours()+":"+date.getMinutes()+":"+date.getSeconds();
+  var year = date.getFullYear();
+  var month = date.getMonth()+1;
+  var day = date.getDate();
+  var hour = date.getHours();
+  var am = (hour>=12)?"PM":"AM";
+  hour = hour%12;
+  var minute = date.getMinutes();
+
+  return ""+format(month)+"."+format(day)+"."+year+" "+format(hour)+":"+format(minute)+am;
 }
 
-// var getColor=function(){
-//   var colors = ['aliceblue','antiquewhite','aqua','aquamarine','pink','red','green',
-//                 'orange','blue','blueviolet','brown','burlywood','cadetblue'];
-//   return colors[Math.round(Math.random() * 10000 % colors.length)];
-// }
-
-
-
-// //check whether the input user name is duplicated
-// function isValidUserName(user){
-//   for(var i in io.sockets.sockets){
-//     if(io.sockets.sockets.hasOwnProperty(i)){
-//       if(io.sockets.sockets[i] && io.sockets.sockets[i].userName == user){
-//           return false;
-//       }
-//     }
-//   }
-//   console.log("valid user name : "+user);
-//   return true;
-// }
+//helper function to format numbers to '00'
+function format(n){
+    return n > 9 ? "" + n: "0" + n;
+}

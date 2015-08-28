@@ -3,18 +3,18 @@
   <head>
     <title>FSE Chat Room</title>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <!--<link rel="stylesheet" type="text/css" href="./styles.css">-->
+    <link rel="stylesheet" type="text/css" href="./styles.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/javascripts/chatroom.js"></script>
-   
   </head>
   
   <body>
-    <!-- <h1>FSE Chat Room<h1> -->
-    <div id="content" style='margin-bottom:30px'></div>
+    <div id="contentDiv" style='margin-bottom:30px'>
+      <table id="contentTable" width="400px" bgcolor="#D3D3D3" style="table-layout:fixed"/>
+    </div>
     <div id="messageDiv">
-      <span id="status" style='font-size:small'>Connecting...</span>
+      <span id="label" style='font-size:small'>Connecting...</span>
       <input type="text" id="input"/>
       <textarea id="textarea" style='display:none'></textarea>
       <input id='button' type='submit' value='ENTER' style='width:70px' />
